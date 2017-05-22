@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "A simple WebSocket-based chat server.",
   "dependencies": {
-    "websocket": "*"
+    "express": "^4.15.3",
+    "socket.io": "^2.0.1"
   },
   "scripts": {
-    "start": "node chatserver"
+    "start": "node server",
+    "devstart": "nodemon server"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0"
   }
 }
