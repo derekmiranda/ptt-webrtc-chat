@@ -15,6 +15,11 @@ const io = require('socket.io')(server);
 
 io.on('connection', function (socket) {
   console.log('New connection:', socket.id);
+
+  /**
+   * WebRTC Signaling Handlers - facilitate exchange of information b/w peers
+   */
+
   // receive offer from initiator and send to receiver along w/ initiator's socket id
   socket.on('offer', function (offer) {
     // check if any clients
@@ -50,6 +55,4 @@ io.on('connection', function (socket) {
     console.log('Emitting ICE candidate...');
     socket.to(peerId).emit('candidate', candidate);
   });
-
-
 });

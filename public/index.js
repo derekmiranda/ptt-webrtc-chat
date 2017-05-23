@@ -11,6 +11,7 @@ const mediaConstraints = {
 document.addEventListener('readystatechange', function() {
   if (document.readyState !== 'complete') return;
 
+  // Instantiate Socket.io client
   window.socket = socket = io();
 
   const call = document.getElementById('call');
@@ -19,6 +20,11 @@ document.addEventListener('readystatechange', function() {
 
   socket.on('message', console.log.bind(console))
 
+  /**
+   * WebRTC Signaling Event Handlers
+   */
+
+  // For receiving offer from an initiating peer and sent by server
   socket.on('offer', (initiatorId, offer) => {
     console.log('Received offer');
 
@@ -28,6 +34,7 @@ document.addEventListener('readystatechange', function() {
     // save peerId
     peerId = initiatorId;
 
+    // Create RTCPeerConnection and set up WebRTC-related event handlers
     genPeerConn();
 
     conn.setRemoteDescription(offer)
@@ -46,6 +53,7 @@ document.addEventListener('readystatechange', function() {
       .catch(logError);
   });
 
+  // For receiving answer from a receiver this peer has called
   socket.on('answer', (receiverId, answer) => {
     console.log('Received answer');
 
@@ -55,12 +63,16 @@ document.addEventListener('readystatechange', function() {
     conn.setRemoteDescription(answer).catch(logError);
   });
 
+  // For receiving an ICE candidate (an IP address needed to talk w/ peer) and registering it
   socket.on('candidate', (candidate) => {
     console.log('Received candidate');
     conn.addIceCandidate(candidate).catch(logError);
   });
 });
 
+/**
+ * RTC Peer Connection setup
+ */
 function genPeerConn() {
   conn = new RTCPeerConnection({
       iceServers: [
@@ -107,6 +119,12 @@ function genPeerConn() {
   }
 }
 
+/**
+ * Play button click handler - starts recording video from webcam,
+ * dislays it in one video tag,
+ * then adds the stream to the RTC Peer Connection, 
+ * which initiates the connection process
+ */
 function startCall(event) {
   if (conn) return window.alert('Already have a call open, dude.');
   
