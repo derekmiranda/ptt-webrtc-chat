@@ -1,7 +1,7 @@
 let conn;
 let socket;
 let peerId = null;
-let alreadyOffered = false;
+let initiatedConn = false;
 
 const mediaConstraints = {
   audio: false,
@@ -21,6 +21,9 @@ document.addEventListener('readystatechange', function() {
 
   socket.on('offer', (initiatorId, offer) => {
     console.log('Received offer');
+
+    if (initiatedConn) return;
+    initiatedConn = true;
 
     // save peerId
     peerId = initiatorId;
@@ -71,8 +74,8 @@ function genPeerConn() {
     });
 
   conn.onnegotiationneeded = () => {
-    if (alreadyOffered) return;
-    alreadyOffered = true;
+    if (initiatedConn) return;
+    initiatedConn = true;
     conn.createOffer()
       .then((offer) => conn.setLocalDescription(offer))
       .then(() => {
@@ -97,6 +100,10 @@ function genPeerConn() {
 
   conn.oniceconnectionstatechange = (event) => {
     console.log('ICE connection state -> ' + conn.iceConnectionState);
+  }
+
+  conn.onsignalingstatechange = (event) => {
+    console.log('Signaling state -> ' + conn.signalingState);
   }
 }
 
