@@ -1,0 +1,36 @@
+body {
+  text-align: center;
+  padding: 140px 30px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#videos {
+  display: flex;
+  margin: 40px;
+}
+
+#local_container, #remote_container {
+  position: relative;
+  background-color: #555;
+  text-align: center;
+  margin: auto;
+  width: 320px;
+  height: 220px;
+  padding-top: 40px;
+}
+
+.caption {
+  position: absolute;
+  text-align: center;
+  color: white;
+  top: 110px;
+  left: 140px;
+}
+
+video {
+  display: block;
+  margin: auto 0;
+  position: relative;
+  width: 320px;
+  height: 180px;
+}

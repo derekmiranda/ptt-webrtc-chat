@@ -23,21 +23,16 @@ io.on('connection', function (socket) {
   // receive offer from initiator and send to receiver along w/ initiator's socket id
   socket.on('offer', function (offer) {
     // check if any clients
-    console.log('Hi');
     io.clients((err, clients) => {
       if (err) throw err;
 
-      console.log('clients:', clients);
       const otherClients = clients.filter(id => id !== this.id);
-      console.log('other clients:', otherClients);
       if (otherClients.length) {
         // console.log('there');
         const initiatorId = this.id;
         const receiverId = otherClients[0];
-        console.log('Emitting offer...');
         socket.to(receiverId).emit('offer', initiatorId, offer);
       } else {
-        console.log('No other clients...');
         socket.emit('message', 'No other clients to connect to');
       }
     });
@@ -54,5 +49,13 @@ io.on('connection', function (socket) {
   socket.on('candidate', function (peerId, candidate) {
     console.log('Emitting ICE candidate...');
     socket.to(peerId).emit('candidate', candidate);
+  });
+
+  // tell other peers to close video when one hangs up
+  socket.on('hangup', (peerId) => {
+    // if (!peerId) return;
+    console.log('Hang up');
+
+    socket.to(peerId).emit('hangup');
   });
 });

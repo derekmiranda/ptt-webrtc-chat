@@ -5,10 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>WebRTC Video Chat Sample</title>
+  <link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <video id="local_video" autoplay muted></video>
-  <video id="remote_video" autoplay muted></video>
+  <div id="videos">
+    <div id="local_container">
+      <p class="caption">Local</p>
+      <video id="local_video" autoplay muted></video>
+    </div>
+    <div id="remote_container">
+      <p class="caption">Remote</p>
+      <video id="remote_video" autoplay muted></video>
+    </div>
+  </div>
   <button id="call">Call</button>
   <button id="hangup" disabled>Hang Up</button>
   <script src="/socket.io/socket.io.js"></script>

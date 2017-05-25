@@ -5,20 +5,24 @@ let initiatedConn = false;
 
 const mediaConstraints = {
   audio: false,
-  video: true,
+  // video: { width: 1280, height: 720 },
+  video: { width: 320, height: 180 },
 };
 
-document.addEventListener('readystatechange', function() {
+document.addEventListener('readystatechange', function () {
   if (document.readyState !== 'complete') return;
 
   // Instantiate Socket.io client
   window.socket = socket = io();
 
   const call = document.getElementById('call');
+  const hangup = document.getElementById('hangup');
 
+  // Register button event handlers
   call.addEventListener('click', startCall);
+  hangup.addEventListener('click', hangupCall);
 
-  socket.on('message', console.log.bind(console))
+  socket.on('message', console.log.bind(console));
 
   /**
    * WebRTC Signaling Event Handlers
@@ -35,7 +39,7 @@ document.addEventListener('readystatechange', function() {
     peerId = initiatorId;
 
     // Create RTCPeerConnection and set up WebRTC-related event handlers
-    genPeerConn();
+    createPeerConn();
 
     conn.setRemoteDescription(offer)
       .then(() => navigator.mediaDevices.getUserMedia(mediaConstraints))
@@ -68,13 +72,73 @@ document.addEventListener('readystatechange', function() {
     console.log('Received candidate');
     conn.addIceCandidate(candidate).catch(logError);
   });
-});
 
-/**
+  // Hangup call when peer does
+  socket.on('hangup', closeVideo);
+
+  /**
+ * Play button click handler - starts recording video from webcam,
+ * dislays it in one video tag,
+ * then adds the stream to the RTC Peer Connection, 
+ * which initiates the connection process
+ */
+  function startCall(event) {
+    if (conn) return window.alert('Already have a call open, dude.');
+
+    console.log('Starting call...');
+
+    createPeerConn();
+
+    navigator.mediaDevices.getUserMedia(mediaConstraints)
+      .then((localStream) => {
+        document.getElementById('local_video').srcObject = localStream;
+        conn.addStream(localStream);
+      })
+      .catch(logError);
+  }
+
+  /**
+   * Hang up button click handler
+   */
+  function hangupCall(event) {
+    closeVideo();
+    socket.emit('hangup', peerId);
+  }
+
+  /**
+   * End video stream
+   */
+  function closeVideo() {
+    console.log('Ending call');
+
+    const remoteVideo = document.getElementById('remote_video');
+    const localVideo = document.getElementById('local_video');
+
+    if (conn) {
+      if (remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+      }
+
+      if (localVideo.srcObject) {
+        localVideo.srcObject.getTracks().forEach(track => track.stop());
+        localVideo.srcObject = null;
+      }
+
+      myPeerConnection.close();
+      myPeerConnection = null;
+    }
+
+    document.getElementById("hangup").disabled = true;
+
+    peerId = null;
+  }
+
+  /**
  * RTC Peer Connection setup
  */
-function genPeerConn() {
-  conn = new RTCPeerConnection({
+  function createPeerConn() {
+    conn = new RTCPeerConnection({
       iceServers: [
         // Default STUN servers
         { urls: 'stun:stun.l.google.com:19302' },
@@ -85,61 +149,41 @@ function genPeerConn() {
       ]
     });
 
-  conn.onnegotiationneeded = () => {
-    if (initiatedConn) return;
-    initiatedConn = true;
-    conn.createOffer()
-      .then((offer) => conn.setLocalDescription(offer))
-      .then(() => {
-        const offer = conn.localDescription;
-        console.log('Sending offer to server...');
-        socket.emit('offer', offer);
-      })
-      .catch(logError);
+    conn.onnegotiationneeded = () => {
+      if (initiatedConn) return;
+      initiatedConn = true;
+      conn.createOffer()
+        .then((offer) => conn.setLocalDescription(offer))
+        .then(() => {
+          const offer = conn.localDescription;
+          console.log('Sending offer to server...');
+          socket.emit('offer', offer);
+        })
+        .catch(logError);
+    }
+
+    conn.onicecandidate = (event) => {
+      if (peerId) {
+        console.log('Sending candidate to server...');
+        socket.emit('candidate', peerId, event.candidate);
+      }
+    }
+
+    conn.onaddstream = (event) => {
+      document.getElementById('remote_video').srcObject = event.stream;
+      document.getElementById('hangup').disabled = false;
+    }
+
+    conn.oniceconnectionstatechange = (event) => {
+      console.log('ICE connection state -> ' + conn.iceConnectionState);
+    }
+
+    conn.onsignalingstatechange = (event) => {
+      console.log('Signaling state -> ' + conn.signalingState);
+    }
   }
 
-  conn.onicecandidate = (event) => {
-    if (peerId) {
-      console.log('Sending candidate to server...');
-      socket.emit('candidate', peerId, event.candidate);
-    } 
+  function logError(e) {
+    console.error(e);
   }
-
-  conn.onaddstream = (event) => {
-    document.getElementById('remote_video').srcObject = event.stream;
-    document.getElementById('hangup').disabled = false;
-  }
-
-  conn.oniceconnectionstatechange = (event) => {
-    console.log('ICE connection state -> ' + conn.iceConnectionState);
-  }
-
-  conn.onsignalingstatechange = (event) => {
-    console.log('Signaling state -> ' + conn.signalingState);
-  }
-}
-
-/**
- * Play button click handler - starts recording video from webcam,
- * dislays it in one video tag,
- * then adds the stream to the RTC Peer Connection, 
- * which initiates the connection process
- */
-function startCall(event) {
-  if (conn) return window.alert('Already have a call open, dude.');
-  
-  console.log('Starting call...');
-  
-  genPeerConn();
-
-  navigator.mediaDevices.getUserMedia(mediaConstraints)
-    .then((localStream) => {
-      document.getElementById('local_video').srcObject = localStream;
-      conn.addStream(localStream);
-    })
-    .catch(logError);
-}
-
-function logError(e) {
-  console.error(e);
-}
+});
